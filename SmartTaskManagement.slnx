@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="SmartTaskManagement.API/SmartTaskManagement.API.csproj" />
+  <Project Path="SmartTaskManagement.Application/SmartTaskManagement.Application.csproj" />
+  <Project Path="SmartTaskManagement.Domain/SmartTaskManagement.Domain.csproj" />
+  <Project Path="SmartTaskManagement.Infrastructure/SmartTaskManagement.Infrastructure.csproj" />
+</Solution>
