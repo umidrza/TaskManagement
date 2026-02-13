@@ -2,8 +2,10 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using SmartTaskManagement.Application.Interfaces;
 using SmartTaskManagement.Domain.Entities;
 using SmartTaskManagement.Infrastructure.Data;
+using SmartTaskManagement.Infrastructure.Services;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -49,6 +51,8 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
+
+builder.Services.AddScoped<ITaskService, TaskService>();
 
 var app = builder.Build();
 
