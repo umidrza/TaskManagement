@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace SmartTaskManagement.Application.DTOs.User;
+﻿namespace SmartTaskManagement.Application.DTOs.User;
 
 public class LoginDto
 {

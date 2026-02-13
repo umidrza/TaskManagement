@@ -30,5 +30,12 @@ public class ApplicationDbContext
             entity.Property(t => t.Description)
                 .HasMaxLength(1000);
         });
+
+        List<IdentityRole> roles = new List<IdentityRole>
+        {
+            new IdentityRole { Name = "Admin", NormalizedName = "ADMIN" },
+            new IdentityRole { Name = "User", NormalizedName = "USER" }
+        };
+        builder.Entity<IdentityRole>().HasData(roles);
     }
 }
