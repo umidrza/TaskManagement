@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SmartTaskManagement.Application.Common;
+using SmartTaskManagement.Application.Common.Exceptions;
 using SmartTaskManagement.Application.DTOs.Task;
 using SmartTaskManagement.Application.Interfaces;
 using SmartTaskManagement.Domain.Entities;
@@ -11,20 +12,24 @@ namespace SmartTaskManagement.Infrastructure.Services;
 public class TaskService : ITaskService
 {
     private readonly ApplicationDbContext _context;
+    private readonly ICurrentUserService _currentUser;
 
-    public TaskService(ApplicationDbContext context)
+    public TaskService(
+        ApplicationDbContext context,
+        ICurrentUserService currentUser)
     {
         _context = context;
+        _currentUser = currentUser;
     }
 
-    public async Task<Guid> CreateAsync(Guid userId, CreateTaskDto dto)
+    public async Task<Guid> CreateAsync(CreateTaskDto dto)
     {
         var task = new TaskItem
         {
             Id = Guid.NewGuid(),
             Title = dto.Title,
             Description = dto.Description,
-            UserId = userId
+            UserId = _currentUser.UserId
         };
 
         _context.Tasks.Add(task);
@@ -34,16 +39,14 @@ public class TaskService : ITaskService
     }
 
     public async Task<PagedResult<TaskDto>> GetAllAsync(
-        Guid userId,
-        bool isAdmin,
         TaskItemStatus? status,
         int page,
         int pageSize)
     {
         var query = _context.Tasks.AsQueryable();
 
-        if (!isAdmin)
-            query = query.Where(t => t.UserId == userId);
+        if (!_currentUser.IsAdmin)
+            query = query.Where(t => t.UserId == _currentUser.UserId);
 
         if (status.HasValue)
             query = query.Where(t => t.Status == status);
@@ -73,19 +76,15 @@ public class TaskService : ITaskService
         };
     }
 
-    public async Task UpdateAsync(
-        Guid userId,
-        bool isAdmin,
-        Guid taskId,
-        UpdateTaskDto dto)
+    public async Task UpdateAsync(Guid taskId, UpdateTaskDto dto)
     {
         var task = await _context.Tasks.FindAsync(taskId);
 
         if (task == null)
-            throw new Exception("Task not found");
+            throw new NotFoundException("Task not found");
 
-        if (!isAdmin && task.UserId != userId)
-            throw new UnauthorizedAccessException();
+        if (!_currentUser.IsAdmin && task.UserId != _currentUser.UserId)
+            throw new ForbiddenException("You are not allowed to update this task.");
 
         task.Title = dto.Title;
         task.Description = dto.Description;
@@ -94,18 +93,15 @@ public class TaskService : ITaskService
         await _context.SaveChangesAsync();
     }
 
-    public async Task DeleteAsync(
-        Guid userId,
-        bool isAdmin,
-        Guid taskId)
+    public async Task DeleteAsync(Guid taskId)
     {
         var task = await _context.Tasks.FindAsync(taskId);
 
         if (task == null)
-            throw new Exception("Task not found");
+            throw new NotFoundException("Task not found");
 
-        if (!isAdmin && task.UserId != userId)
-            throw new UnauthorizedAccessException();
+        if (!_currentUser.IsAdmin && task.UserId != _currentUser.UserId)
+            throw new ForbiddenException("You are not allowed to delete this task.");
 
         _context.Tasks.Remove(task);
         await _context.SaveChangesAsync();

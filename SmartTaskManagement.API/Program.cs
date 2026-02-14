@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using SmartTaskManagement.API.Middleware;
 using SmartTaskManagement.Application.Interfaces;
 using SmartTaskManagement.Domain.Entities;
 using SmartTaskManagement.Infrastructure.Data;
@@ -51,7 +52,9 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
+builder.Services.AddHttpContextAccessor();
 
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<ITaskService, TaskService>();
 
 var app = builder.Build();
@@ -59,11 +62,14 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
+app.UseMiddleware<ExceptionMiddleware>();
+
 app.UseCors("AllowAll");
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
 
 app.Run();
