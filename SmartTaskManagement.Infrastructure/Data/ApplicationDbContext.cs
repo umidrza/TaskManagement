@@ -14,6 +14,8 @@ public class ApplicationDbContext
     }
 
     public DbSet<TaskItem> Tasks => Set<TaskItem>();
+    public DbSet<RefreshToken> RefreshTokens { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -31,11 +33,13 @@ public class ApplicationDbContext
                 .HasMaxLength(1000);
         });
 
-        List<IdentityRole> roles = new List<IdentityRole>
+        builder.Entity<RefreshToken>(entity =>
         {
-            new IdentityRole { Name = "Admin", NormalizedName = "ADMIN" },
-            new IdentityRole { Name = "User", NormalizedName = "USER" }
-        };
-        builder.Entity<IdentityRole>().HasData(roles);
+            entity.HasKey(x => x.Id);
+
+            entity.HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId);
+        });
     }
 }
