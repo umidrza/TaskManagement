@@ -1,4 +1,4 @@
-﻿using SmartTaskManagement.Application.Common.Exceptions;
+﻿using SmartTaskManagement.Application.Exceptions;
 using System.Net;
 using System.Text.Json;
 
@@ -39,6 +39,9 @@ public class ExceptionMiddleware
         {
             NotFoundException => HttpStatusCode.NotFound,
             ForbiddenException => HttpStatusCode.Forbidden,
+            UnauthorizedException => HttpStatusCode.Unauthorized,
+            ConflictException => HttpStatusCode.Conflict,
+            BadRequestException => HttpStatusCode.BadRequest,
             _ => HttpStatusCode.InternalServerError
         };
 

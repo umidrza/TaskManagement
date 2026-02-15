@@ -12,8 +12,8 @@ using SmartTaskManagement.Infrastructure.Data;
 namespace SmartTaskManagement.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260215074811_UpdateTaskItem")]
-    partial class UpdateTaskItem
+    [Migration("20260215124007_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

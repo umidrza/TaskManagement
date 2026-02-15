@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using SmartTaskManagement.Application.DTOs.User;
+using SmartTaskManagement.Application.Exceptions;
 using SmartTaskManagement.Application.Interfaces;
 using SmartTaskManagement.Domain.Entities;
 using SmartTaskManagement.Infrastructure.Data;
@@ -33,11 +34,11 @@ public class AuthService : IAuthService
     {
         var user = await _userManager.FindByEmailAsync(request.Email);
         if (user == null)
-            throw new Exception("Invalid credentials");
+            throw new UnauthorizedException("Invalid email or password");
 
         var validPassword = await _userManager.CheckPasswordAsync(user, request.Password);
         if (!validPassword)
-            throw new Exception("Invalid credentials");
+            throw new UnauthorizedException("Invalid email or password");
 
         var accessToken = await GenerateJwtToken(user);
         var refreshToken = GenerateRefreshToken();
@@ -65,7 +66,7 @@ public class AuthService : IAuthService
     {
         var existingUser = await _userManager.FindByEmailAsync(request.Email);
         if (existingUser != null)
-            throw new Exception("User already exists");
+            throw new ConflictException("User with this email already exists");
 
         var user = new ApplicationUser
         {
@@ -77,7 +78,7 @@ public class AuthService : IAuthService
         var result = await _userManager.CreateAsync(user, request.Password);
 
         if (!result.Succeeded)
-            throw new Exception(string.Join(", ", result.Errors.Select(e => e.Description)));
+            throw new BadRequestException(string.Join(", ", result.Errors.Select(e => e.Description)));
 
         await _userManager.AddToRoleAsync(user, "User");
 
@@ -109,12 +110,14 @@ public class AuthService : IAuthService
             .Include(x => x.User)
             .FirstOrDefaultAsync(x => x.Token == refreshToken);
 
-        if (storedToken == null ||
-            storedToken.IsRevoked ||
-            storedToken.Expires < DateTime.UtcNow)
-        {
-            throw new Exception("Invalid refresh token");
-        }
+        if (storedToken == null)
+            throw new NotFoundException("Refresh token not found");
+
+        if (storedToken.IsRevoked)
+            throw new UnauthorizedException("Refresh token has been revoked");
+
+        if (storedToken.Expires < DateTime.UtcNow)
+            throw new UnauthorizedException("Refresh token has expired");
 
         storedToken.IsRevoked = true;
 
@@ -154,7 +157,7 @@ public class AuthService : IAuthService
 
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
-        var keyString = _configuration["Jwt:Key"];
+        var keyString = _configuration["JwtSettings:Key"];
         if (string.IsNullOrEmpty(keyString))
             throw new Exception("JWT Key is missing in configuration!");
 
@@ -163,10 +166,10 @@ public class AuthService : IAuthService
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
-            issuer: _configuration["Jwt:Issuer"],
-            audience: _configuration["Jwt:Audience"],
+            issuer: _configuration["JwtSettings:Issuer"],
+            audience: _configuration["JwtSettings:Audience"],
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(15),
+            expires: DateTime.UtcNow.AddHours(1),
             signingCredentials: creds);
 
         return new JwtSecurityTokenHandler().WriteToken(token);

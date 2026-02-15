@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Http;
+using SmartTaskManagement.Application.Exceptions;
 using SmartTaskManagement.Application.Interfaces;
 using System.Security.Claims;
 
 namespace SmartTaskManagement.Infrastructure.Services;
-
 
 public class CurrentUserService : ICurrentUserService
 {
@@ -14,11 +14,23 @@ public class CurrentUserService : ICurrentUserService
         _httpContextAccessor = httpContextAccessor;
     }
 
-    public Guid UserId =>
-        Guid.Parse(_httpContextAccessor.HttpContext!
-            .User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+    public Guid UserId
+    {
+        get
+        {
+            var userId = _httpContextAccessor.HttpContext?
+                .User?
+                .FindFirst(ClaimTypes.NameIdentifier)?
+                .Value;
+
+            return userId != null
+                ? Guid.Parse(userId)
+                : throw new UnauthorizedException("User is not authenticated");
+        }
+    }
 
     public bool IsAdmin =>
-        _httpContextAccessor.HttpContext!
-            .User.IsInRole("Admin");
+        _httpContextAccessor.HttpContext?
+            .User?
+            .IsInRole("Admin") ?? false;
 }

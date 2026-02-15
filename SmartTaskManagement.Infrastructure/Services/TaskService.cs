@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SmartTaskManagement.Application.Common;
-using SmartTaskManagement.Application.Common.Exceptions;
+using SmartTaskManagement.Application.Exceptions;
 using SmartTaskManagement.Application.DTOs.Task;
 using SmartTaskManagement.Application.Interfaces;
 using SmartTaskManagement.Domain.Entities;

@@ -85,14 +85,13 @@ using (var scope = app.Services.CreateScope())
 app.UseSwagger();
 app.UseSwaggerUI();
 
-app.UseMiddleware<ExceptionMiddleware>();
-
 app.UseCors("AllowAll");
 
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapControllers();
+app.UseMiddleware<ExceptionMiddleware>();
 
+app.MapControllers();
 
 app.Run();

@@ -1,4 +1,4 @@
-﻿namespace SmartTaskManagement.Application.Common.Exceptions;
+﻿namespace SmartTaskManagement.Application.Exceptions;
 
 public class ForbiddenException : Exception
 {
