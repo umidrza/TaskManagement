@@ -154,8 +154,11 @@ public class AuthService : IAuthService
 
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
-        var key = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
+        var keyString = _configuration["Jwt:Key"];
+        if (string.IsNullOrEmpty(keyString))
+            throw new Exception("JWT Key is missing in configuration!");
+
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyString));
 
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 

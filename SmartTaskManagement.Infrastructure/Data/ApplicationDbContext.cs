@@ -9,12 +9,10 @@ public class ApplicationDbContext
     : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-        : base(options)
-    {
-    }
+        : base(options) { }
 
     public DbSet<TaskItem> Tasks => Set<TaskItem>();
-    public DbSet<RefreshToken> RefreshTokens { get; set; }
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -31,6 +29,12 @@ public class ApplicationDbContext
 
             entity.Property(t => t.Description)
                 .HasMaxLength(1000);
+
+            builder.Entity<TaskItem>()
+                .HasOne(t => t.User)
+                .WithMany(u => u.Tasks)
+                .HasForeignKey(t => t.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<RefreshToken>(entity =>
@@ -38,8 +42,9 @@ public class ApplicationDbContext
             entity.HasKey(x => x.Id);
 
             entity.HasOne(x => x.User)
-                .WithMany()
-                .HasForeignKey(x => x.UserId);
+                .WithMany(u => u.RefreshTokens)
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
