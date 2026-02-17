@@ -1,7 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
+using Microsoft.EntityFrameworkCore;
 using SmartTaskManagement.Application.Common;
-using SmartTaskManagement.Application.Exceptions;
 using SmartTaskManagement.Application.DTOs.Task;
+using SmartTaskManagement.Application.Exceptions;
 using SmartTaskManagement.Application.Interfaces;
 using SmartTaskManagement.Domain.Entities;
 using SmartTaskManagement.Domain.Enums;
@@ -13,24 +15,24 @@ public class TaskService : ITaskService
 {
     private readonly ApplicationDbContext _context;
     private readonly ICurrentUserService _currentUser;
+    private readonly IMapper _mapper;
 
     public TaskService(
         ApplicationDbContext context,
-        ICurrentUserService currentUser)
+        ICurrentUserService currentUser,
+        IMapper mapper)
     {
         _context = context;
         _currentUser = currentUser;
+        _mapper = mapper;
     }
 
     public async Task<Guid> CreateAsync(CreateTaskDto dto)
     {
-        var task = new TaskItem
-        {
-            Id = Guid.NewGuid(),
-            Title = dto.Title,
-            Description = dto.Description,
-            UserId = _currentUser.UserId
-        };
+        var task = _mapper.Map<TaskItem>(dto);
+
+        task.Id = Guid.NewGuid();
+        task.UserId = _currentUser.UserId;
 
         _context.Tasks.Add(task);
         await _context.SaveChangesAsync();
@@ -43,7 +45,9 @@ public class TaskService : ITaskService
         int page,
         int pageSize)
     {
-        var query = _context.Tasks.AsQueryable();
+        var query = _context.Tasks
+            .AsNoTracking()
+            .AsQueryable();
 
         if (!_currentUser.IsAdmin)
             query = query.Where(t => t.UserId == _currentUser.UserId);
@@ -57,15 +61,7 @@ public class TaskService : ITaskService
             .OrderByDescending(t => t.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(t => new TaskDto
-            {
-                Id = t.Id,
-                Title = t.Title,
-                Description = t.Description,
-                Status = t.Status,
-                Priority = t.Priority,
-                CreatedAt = t.CreatedAt
-            })
+            .ProjectTo<TaskDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
 
         return new PagedResult<TaskDto>
@@ -87,10 +83,7 @@ public class TaskService : ITaskService
         if (!_currentUser.IsAdmin && task.UserId != _currentUser.UserId)
             throw new ForbiddenException("You are not allowed to update this task.");
 
-        task.Title = dto.Title;
-        task.Description = dto.Description;
-        task.Status = dto.Status;
-        task.Priority = dto.Priority;
+        _mapper.Map(dto, task);
 
         await _context.SaveChangesAsync();
     }
@@ -112,17 +105,14 @@ public class TaskService : ITaskService
     public async Task<List<TaskDto>> GetOverdueAsync()
     {
         var query = _context.Tasks
+            .AsNoTracking()
             .Where(t => t.IsOverdue);
 
+        if (!_currentUser.IsAdmin)
+            query = query.Where(t => t.UserId == _currentUser.UserId);
+
         return await query
-            .Select(t => new TaskDto
-            {
-                Id = t.Id,
-                Title = t.Title,
-                Status = t.Status,
-                Priority = t.Priority,
-                CreatedAt = t.CreatedAt,
-            })
+            .ProjectTo<TaskDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
     }
 
@@ -130,12 +120,20 @@ public class TaskService : ITaskService
     {
         var query = _context.Tasks.AsQueryable();
 
-        return new TaskStatsDto
-        {
-            Total = await query.CountAsync(),
-            Completed = await query.CountAsync(t => t.Status == TaskItemStatus.Completed),
-            Pending = await query.CountAsync(t => t.Status == TaskItemStatus.Pending),
-            InProgress = await query.CountAsync(t => t.Status == TaskItemStatus.InProgress)
-        };
+        if (!_currentUser.IsAdmin)
+            query = query.Where(t => t.UserId == _currentUser.UserId);
+
+        var grouped = await query
+            .GroupBy(t => 1)
+            .Select(g => new TaskStatsDto
+            {
+                Total = g.Count(),
+                Completed = g.Count(t => t.Status == TaskItemStatus.Completed),
+                Pending = g.Count(t => t.Status == TaskItemStatus.Pending),
+                InProgress = g.Count(t => t.Status == TaskItemStatus.InProgress)
+            })
+            .FirstOrDefaultAsync();
+
+        return grouped ?? new TaskStatsDto();
     }
 }

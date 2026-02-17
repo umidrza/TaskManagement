@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using SmartTaskManagement.Application.DTOs.Comment;
 using SmartTaskManagement.Application.Interfaces;
 using SmartTaskManagement.Domain.Entities;
@@ -10,24 +11,25 @@ public class TaskCommentService : ITaskCommentService
 {
     private readonly ApplicationDbContext _context;
     private readonly ICurrentUserService _currentUser;
+    private readonly IMapper _mapper;
 
     public TaskCommentService(
         ApplicationDbContext context,
-        ICurrentUserService currentUser)
+        ICurrentUserService currentUser,
+        IMapper mapper)
     {
         _context = context;
         _currentUser = currentUser;
+        _mapper = mapper;
     }
 
     public async Task<Guid> CreateAsync(Guid taskId, CreateCommentDto dto)
     {
-        var comment = new TaskComment
-        {
-            Id = Guid.NewGuid(),
-            TaskId = taskId,
-            UserId = _currentUser.UserId,
-            Content = dto.Content,
-        };
+        var comment = _mapper.Map<TaskComment>(dto);
+        comment.Id = Guid.NewGuid();
+        comment.UserId = _currentUser.UserId;
+        comment.TaskId = taskId;
+
 
         _context.TaskComments.Add(comment);
         await _context.SaveChangesAsync();
