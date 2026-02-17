@@ -13,4 +13,8 @@ public interface ITaskService
     Task UpdateAsync(Guid taskId, UpdateTaskDto dto);
 
     Task DeleteAsync(Guid taskId);
+
+    Task<List<TaskDto>> GetOverdueAsync();
+
+    Task<TaskStatsDto> GetStatsAsync();
 }

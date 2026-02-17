@@ -63,6 +63,7 @@ public class TaskService : ITaskService
                 Title = t.Title,
                 Description = t.Description,
                 Status = t.Status,
+                Priority = t.Priority,
                 CreatedAt = t.CreatedAt
             })
             .ToListAsync();
@@ -89,6 +90,7 @@ public class TaskService : ITaskService
         task.Title = dto.Title;
         task.Description = dto.Description;
         task.Status = dto.Status;
+        task.Priority = dto.Priority;
 
         await _context.SaveChangesAsync();
     }
@@ -103,7 +105,37 @@ public class TaskService : ITaskService
         if (!_currentUser.IsAdmin && task.UserId != _currentUser.UserId)
             throw new ForbiddenException("You are not allowed to delete this task.");
 
-        _context.Tasks.Remove(task);
+        task.IsDeleted = true;
         await _context.SaveChangesAsync();
+    }
+
+    public async Task<List<TaskDto>> GetOverdueAsync()
+    {
+        var query = _context.Tasks
+            .Where(t => t.IsOverdue);
+
+        return await query
+            .Select(t => new TaskDto
+            {
+                Id = t.Id,
+                Title = t.Title,
+                Status = t.Status,
+                Priority = t.Priority,
+                CreatedAt = t.CreatedAt,
+            })
+            .ToListAsync();
+    }
+
+    public async Task<TaskStatsDto> GetStatsAsync()
+    {
+        var query = _context.Tasks.AsQueryable();
+
+        return new TaskStatsDto
+        {
+            Total = await query.CountAsync(),
+            Completed = await query.CountAsync(t => t.Status == TaskItemStatus.Completed),
+            Pending = await query.CountAsync(t => t.Status == TaskItemStatus.Pending),
+            InProgress = await query.CountAsync(t => t.Status == TaskItemStatus.InProgress)
+        };
     }
 }

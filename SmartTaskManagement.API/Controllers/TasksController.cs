@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿    using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SmartTaskManagement.Application.DTOs.Task;
 using SmartTaskManagement.Application.Interfaces;
@@ -47,5 +47,19 @@ public class TasksController : ControllerBase
     {
         await _taskService.DeleteAsync(id);
         return NoContent();
+    }
+
+    [HttpGet("overdue")]
+    public async Task<IActionResult> GetOverdue()
+    {
+        var result = await _taskService.GetOverdueAsync();
+        return Ok(result);
+    }
+
+    [HttpGet("stats")]
+    public async Task<IActionResult> GetStats()
+    {
+        var result = await _taskService.GetStatsAsync();
+        return Ok(result);
     }
 }

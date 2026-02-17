@@ -12,6 +12,7 @@ public class ApplicationDbContext
         : base(options) { }
 
     public DbSet<TaskItem> Tasks => Set<TaskItem>();
+    public DbSet<TaskComment> TaskComments => Set<TaskComment>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
 
@@ -30,12 +31,23 @@ public class ApplicationDbContext
             entity.Property(t => t.Description)
                 .HasMaxLength(1000);
 
-            builder.Entity<TaskItem>()
-                .HasOne(t => t.User)
+            entity.HasOne(t => t.User)
                 .WithMany(u => u.Tasks)
                 .HasForeignKey(t => t.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasQueryFilter(t => !t.IsDeleted);
         });
+
+        builder.Entity<TaskComment>(entity =>
+        {
+            entity.HasOne(c => c.Task)
+                .WithMany(t => t.Comments)
+                .HasForeignKey(c => c.TaskId);
+
+            entity.HasQueryFilter(c => !c.Task.IsDeleted);
+        });
+            
 
         builder.Entity<RefreshToken>(entity =>
         {
