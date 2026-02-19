@@ -27,6 +27,14 @@ public class TaskService : ITaskService
         _mapper = mapper;
     }
 
+    private IQueryable<TaskItem> ApplyUserFilter(IQueryable<TaskItem> query)
+    {
+        if (!_currentUser.IsAdmin)
+            query = query.Where(t => t.UserId == _currentUser.UserId);
+
+        return query;
+    }
+
     public async Task<Guid> CreateAsync(CreateTaskDto dto)
     {
         var task = _mapper.Map<TaskItem>(dto);
@@ -45,12 +53,7 @@ public class TaskService : ITaskService
         int page,
         int pageSize)
     {
-        var query = _context.Tasks
-            .AsNoTracking()
-            .AsQueryable();
-
-        if (!_currentUser.IsAdmin)
-            query = query.Where(t => t.UserId == _currentUser.UserId);
+        var query = ApplyUserFilter(_context.Tasks.AsNoTracking());
 
         if (status.HasValue)
             query = query.Where(t => t.Status == status);
@@ -104,12 +107,8 @@ public class TaskService : ITaskService
 
     public async Task<List<TaskDto>> GetOverdueAsync()
     {
-        var query = _context.Tasks
-            .AsNoTracking()
+        var query = ApplyUserFilter(_context.Tasks.AsNoTracking())
             .Where(t => t.IsOverdue);
-
-        if (!_currentUser.IsAdmin)
-            query = query.Where(t => t.UserId == _currentUser.UserId);
 
         return await query
             .ProjectTo<TaskDto>(_mapper.ConfigurationProvider)
@@ -118,10 +117,7 @@ public class TaskService : ITaskService
 
     public async Task<TaskStatsDto> GetStatsAsync()
     {
-        var query = _context.Tasks.AsQueryable();
-
-        if (!_currentUser.IsAdmin)
-            query = query.Where(t => t.UserId == _currentUser.UserId);
+        var query = ApplyUserFilter(_context.Tasks.AsNoTracking());
 
         var grouped = await query
             .GroupBy(t => 1)
