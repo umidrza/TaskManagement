@@ -3,4 +3,5 @@
   <Project Path="SmartTaskManagement.Application/SmartTaskManagement.Application.csproj" />
   <Project Path="SmartTaskManagement.Domain/SmartTaskManagement.Domain.csproj" />
   <Project Path="SmartTaskManagement.Infrastructure/SmartTaskManagement.Infrastructure.csproj" />
+  <Project Path="SmartTaskManagement.Tests/SmartTaskManagement.Tests.csproj" />
 </Solution>
